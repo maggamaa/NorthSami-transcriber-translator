@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Samisk/norsk transkripsjon & oversettelse</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700\&display=swap" rel="stylesheet">
+   <style>
+       body { font-family: 'Inter', sans-serif; }
+       .pulse { animation: pulse-red 2s infinite; }
+       @keyframes pulse-red {
+           0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+           70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+           100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+       }
+       input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; cursor: pointer; }
+       input[type=range]::-webkit-slider-runnable-track { background: #e5e7eb; height: 0.25rem; border-radius: 1rem; }
+       input[type=range]::-moz-range-track { background: #e5e7eb; height: 0.25rem; border-radius: 1rem; }
+       input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -6px; background-color: #3b82f6; height: 1.25rem; width: 1.25rem; border-radius: 9999px; }
+       input[type=range]::-moz-range-thumb { border: none; border-radius: 9999px; background-color: #3b82f6; height: 1.25rem; width: 1.25rem; }
+       .dark input[type=range]::-webkit-slider-runnable-track { background: #4b5563; }
+       .dark input[type=range]::-moz-range-track { background: #4b5563; }
+       .placeholder-dots::after {
+           content: ' .';
+           animation: dots 1.4s linear infinite;
+       }
+       @keyframes dots {
+           0%, 20% { content: ' .'; }
+           40% { content: ' ..'; }
+           60% { content: ' ...'; }
+           80%, 100% { content: ''; }
+       }
+   </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center min-h-screen p-4">
+
+   <div class="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8">
+       <div class="text-center mb-6">
+           <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">Transkripsjon & oversettelse</h1>
+       </div>
+
+       <div class="flex flex-col items-center justify-center space-y-6 mb-6">
+           <button id="recordButton" class="px-8 py-4 bg-blue-600 text-white font-semibold rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 ease-in-out text-lg">
+               Start opptak
+           </button>
+           <div id="status" class="h-6 text-center text-gray-600 dark:text-gray-300 font-medium">Klar til å starte</div>
+       </div>
+
+       <!--
+       Model selection is disabled for the public server.
+       The UI is locked to a single wav2vec2 model to avoid GPU memory exhaustion and multi-user conflicts.
+
+       <div class="mb-6">
+           <h2 class="text-lg font-semibold text-center mb-3">Modellvalg</h2>
+           <div id="modelSelector" class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+               <label class="flex items-start space-x-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-400">
+                   <input type="radio" name="modelSelection" value="NbAiLab/nb-whisper-large" class="mt-1 text-blue-600 focus:ring-blue-500" checked>
+                   <div>
+                       <div class="font-semibold text-gray-800 dark:text-gray-100">Sámi → Norsk</div>
+                       <div class="text-sm text-gray-500 dark:text-gray-400">nb-whisper-large</div>
+                   </div>
+               </label>
+               <label class="flex items-start space-x-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-400">
+                   <input type="radio" name="modelSelection" value="NbAiLab/whisper-large-sme" class="mt-1 text-blue-600 focus:ring-blue-500">
+                   <div>
+                       <div class="font-semibold text-gray-800 dark:text-gray-100">Sámi → Sámi</div>
+                       <div class="text-sm text-gray-500 dark:text-gray-400">whisper-large-sme</div>
+                   </div>
+               </label>
+               <label class="flex items-start space-x-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-blue-400">
+                   <input type="radio" name="modelSelection" value="GetmanY1/wav2vec2-large-sami-cont-pt-22k-finetuned" class="mt-1 text-blue-600 focus:ring-blue-500">
+                   <div>
+                       <div class="font-semibold text-gray-800 dark:text-gray-100">Sámi (CTC)</div>
+                       <div class="text-sm text-gray-500 dark:text-gray-400">wav2vec2-large-sami</div>
+                   </div>
+               </label>
+           </div>
+       </div>
+       -->
+
+        <div class="mb-4 flex justify-center">
+            <div class="inline-flex rounded-md shadow-sm" role="group">
+                <button type="button" id="showNorwegianBtn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Transkripsjon</button>
+                <button type="button" id="showTranslationBtn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Oversettelse</button>
+                <button type="button" id="showBothBtn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-md hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Begge</button>
+                <!-- Disabled for the public server:
+                <button type="button" id="showNorwegianBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-gray-200 rounded-l-lg hover:bg-blue-700 dark:bg-blue-500 dark:border-gray-600 dark:text-white dark:hover:bg-blue-600">Norsk</button>
+                <button type="button" id="showTranslationBtn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Oversettelse</button>
+                <button type="button" id="showBothBtn" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-md hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Begge</button>
+                -->
+            </div>
+        </div>
+
+        <div id="languageSelectorContainer" class="mb-4 flex justify-center hidden">
+            <div class="flex items-center space-x-2">
+                <label for="targetLanguage" class="text-sm font-medium text-gray-700 dark:text-gray-300">Målspråk:</label>
+                <select id="targetLanguage" class="px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </select>
+            </div>
+        </div>
+
+        <div id="outputContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="norwegianContainer">
+                <h2 id="transcriptionHeader" class="text-lg font-semibold mb-2 text-center">Norsk</h2>
+                <div id="transcriptionContainer" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-64 overflow-y-auto border border-gray-200 dark:border-gray-600"></div>
+            </div>
+            <div id="translationContainer" class="hidden">
+                 <h2 class="text-lg font-semibold mb-2 text-center" id="translationHeader">Oversettelse</h2>
+                <div id="translationOutput" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-64 overflow-y-auto border border-gray-200 dark:border-gray-600"></div>
+            </div>
+        </div>
+ 
+        <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h2 class="text-lg font-semibold text-center mb-4">Innstillinger</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="maxSeconds" class="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span>Maks klipplengde</span><span id="maxSecondsValue" class="font-bold">10 s</span>
+                    </label>
+                    <input id="maxSeconds" type="range" min="5" max="30" value="10" class="w-full">
+                </div>
+                <div>
+                    <label for="silenceDuration" class="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span>Stilletid før sending</span><span id="silenceDurationValue" class="font-bold">1.0 s</span>
+                    </label>
+                    <input id="silenceDuration" type="range" min="0.5" max="5" value="1.0" step="0.1" class="w-full">
+                </div>
+                <div>
+                    <label for="vadThreshold" class="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <span>Taleterskel (høyere = mindre følsom)</span><span id="vadThresholdValue" class="font-bold">0.50</span>
+                    </label>
+                    <input id="vadThreshold" type="range" min="0.2" max="0.8" value="0.5" step="0.05" class="w-full">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const recordButton = document.getElementById('recordButton');
+        const statusDiv = document.getElementById('status');
+        const transcriptionContainer = document.getElementById('transcriptionContainer');
+        const translationOutput = document.getElementById('translationOutput');
+        const showNorwegianBtn = document.getElementById('showNorwegianBtn');
+        const showTranslationBtn = document.getElementById('showTranslationBtn');
+        const showBothBtn = document.getElementById('showBothBtn');
+        const norwegianContainerDiv = document.getElementById('norwegianContainer');
+        const translationContainerDiv = document.getElementById('translationContainer');
+        const outputContainer = document.getElementById('outputContainer');
+        const targetLanguageSelect = document.getElementById('targetLanguage');
+        const languageSelectorContainer = document.getElementById('languageSelectorContainer');
+        const translationHeader = document.getElementById('translationHeader');
+        const transcriptionHeader = document.getElementById('transcriptionHeader');
+        const maxSecondsSlider = document.getElementById('maxSeconds');
+        const silenceDurationSlider = document.getElementById('silenceDuration');
+        const vadThresholdSlider = document.getElementById('vadThreshold');
+        const maxSecondsValue = document.getElementById('maxSecondsValue');
+        const silenceDurationValue = document.getElementById('silenceDurationValue');
+        const vadThresholdValue = document.getElementById('vadThresholdValue');
+        /* disabled for public server
+        const modelRadios = document.querySelectorAll('input[name="modelSelection"]');
+        */
+
+        let isRecording = false;
+        let mediaRecorder;
+        let socket;
+        const CHUNK_TIMESLICE_MS = 500;
+        const TARTUNLP_API_URL = 'https://api.tartunlp.ai/translation/v2';
+
+        // Fixed model for public server (wav2vec2) outputs Northern Sámi
+        const SOURCE_LANGUAGE = 'sme';
+
+
+        /* Multi-model support (disabled)
+        const DEFAULT_MODEL = 'NbAiLab/nb-whisper-large';
+        const MODEL_OPTIONS = {
+            'NbAiLab/nb-whisper-large': {
+                label: 'Sámi → Norsk',
+                sourceLang: 'nor',
+                transcriptionLabel: 'Norsk',
+                defaultTarget: 'sme'
+            },
+            'NbAiLab/whisper-large-sme': {
+                label: 'Sámi → Sámi',
+                sourceLang: 'sme',
+                transcriptionLabel: 'Nordsamisk',
+                defaultTarget: 'nor'
+            },
+            'GetmanY1/wav2vec2-large-sami-cont-pt-22k-finetuned': {
+                label: 'Sámi (CTC)',
+                sourceLang: 'sme',
+                transcriptionLabel: 'Nordsamisk (CTC)',
+                defaultTarget: 'nor'
+            }
+        };
+        let selectedModel = DEFAULT_MODEL;
+        */
+
+        let isModelLoading = false;
+        let lastStatusMessage = statusDiv.textContent || 'Klar til å starte';
+
+        /*
+        function getModelLabel(modelName) {
+            return MODEL_OPTIONS[modelName]?.label || modelName;
+        }
+
+        function resolveSourceLanguage(modelName) {
+            const entry = MODEL_OPTIONS[modelName];
+            if (entry && entry.sourceLang) {
+                return normalizeLanguageCode(entry.sourceLang);
+            }
+            if (typeof modelName === 'string' && modelName.toLowerCase().includes('whisper-large-sme')) {
+                return 'sme';
+            }
+            return 'nor';
+        }
+        */
+
+        function setStatusMessage(message) {
+            lastStatusMessage = message;
+            if (!isModelLoading) {
+                statusDiv.textContent = message;
+            }
+        }
+
+        /* Disabled for public server:
+        function setModelLoadingState(isLoading, modelName) {
+            if (isLoading) {
+                isModelLoading = true;
+                statusDiv.textContent = `Laster modell (${getModelLabel(modelName)})...`;
+            } else {
+                isModelLoading = false;
+                statusDiv.textContent = lastStatusMessage;
+            }
+        }
+
+        function handleModelStatusMessage(payload) {
+            const { status, modelName, error } = payload;
+            if (status === 'loading') {
+                setModelLoadingState(true, modelName);
+                return;
+            }
+            if (status === 'ready') {
+                setModelLoadingState(false, modelName);
+                if (isRecording) {
+                    setStatusMessage('Strømmer lyd...');
+                } else {
+                    setStatusMessage('Klar til å starte');
+                }
+                return;
+            }
+            if (status === 'error') {
+                setModelLoadingState(false, modelName);
+                const errorText = error ? `Feil ved lasting av modell: ${error}` : 'Feil ved lasting av modell.';
+                setStatusMessage(errorText);
+            }
+        }
+        */
+
+        function normalizeLanguageCode(code) {
+            return (code || '').toString().trim().toLowerCase();
+        }
+
+        // Static list of supported translation pairs from TartuNLP API
+        // Language code -> Language name mapping (in Norwegian)
+        const supportedLanguages = Object.entries({
+            'eng': 'Engelsk',
+            'kca': 'Khanti',
+            'koi': 'Komi-permjakisk',
+            'kpv': 'Komi-syrjensk',
+            'krl': 'Karelsk',
+            'liv': 'Livisk',
+            'lud': 'Lüüdisk',
+            'mdf': 'Moksja',
+            'mhr': 'Austmarisk',
+            'mns': 'Mansi',
+            'nor': 'Norsk',
+            'mrj': 'Vestmarisk',
+            'myv': 'Erzja',
+            'olo': 'Livvi',
+            'sma': 'Sørsamisk',
+            'sme': 'Nordsamisk',
+            'smj': 'Lulesamisk',
+            'smn': 'Enaresamisk',
+            'sms': 'Skoltesamisk',
+            'udm': 'Udmurtisk',
+            'vep': 'Vepsisk',
+            'vro': 'Võro'
+        }).reduce((acc, [code, name]) => {
+            const normalizedCode = normalizeLanguageCode(code);
+            if (normalizedCode) {
+                acc[normalizedCode] = name;
+            }
+            return acc;
+        }, {});
+        if (!supportedLanguages.nor) {
+            supportedLanguages.nor = 'Norsk';
+        }
+
+        // Populate the language dropdown on page load
+        function loadSupportedLanguages() {
+            targetLanguageSelect.innerHTML = '';
+
+            const sortedEntries = Object.entries(supportedLanguages).sort((a, b) =>
+                a[1].localeCompare(b[1])
+            );
+            const seenCodes = new Set();
+
+            sortedEntries.forEach(([code, name]) => {
+                if (seenCodes.has(code)) return;
+                seenCodes.add(code);
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = name;
+                targetLanguageSelect.appendChild(option);
+            });
+
+            // Public server translation default target language changed from sme to nor
+            if (supportedLanguages.nor) {
+                targetLanguageSelect.value = 'nor';
+            } else if (sortedEntries.length > 0) {
+                targetLanguageSelect.value = sortedEntries[0][0];
+            }
+
+            updateTranslationHeader();
+        }
+
+        function selectTargetLanguage(targetCode) {
+            const normalizedTarget = normalizeLanguageCode(targetCode);
+            const optionValues = Array.from(targetLanguageSelect.options).map(option => option.value);
+            if (normalizedTarget && optionValues.includes(normalizedTarget)) {
+                targetLanguageSelect.value = normalizedTarget;
+            } else if (!targetLanguageSelect.value && optionValues.length > 0) {
+                targetLanguageSelect.selectedIndex = 0;
+            }
+            updateTranslationHeader();
+        }
+
+        /* Disabled for public server:
+        function applyModelUI(modelName) {
+            const modelSettings = MODEL_OPTIONS[modelName] || {};
+            const transLabel = modelSettings.transcriptionLabel || 'Norsk';
+            transcriptionHeader.textContent = transLabel;
+            showNorwegianBtn.textContent = transLabel;
+            if (modelSettings.defaultTarget) {
+                selectTargetLanguage(modelSettings.defaultTarget);
+            } else {
+                updateTranslationHeader();
+            }
+        }
+        */
+
+        // Update translation header based on selected language
+        function updateTranslationHeader() {
+            const selectedLang = normalizeLanguageCode(targetLanguageSelect.value);
+            translationHeader.textContent = supportedLanguages[selectedLang] || selectedLang.toUpperCase();
+        }
+
+        // Update translation header when language changes
+        targetLanguageSelect.addEventListener('change', updateTranslationHeader);
+
+        // TartuNLP Translation API v2 function
+ 
+        /*  Disabled for public server:
+        async function translateText(text, targetLang, modelNameOverride) {
+            const resolvedModel = modelNameOverride || selectedModel;
+            const sourceLang = resolveSourceLanguage(resolvedModel);
+        */
+        // Replacement:
+        async function translateText(text, targetLang) {
+            const sourceLang = SOURCE_LANGUAGE;
+            // Replacement ends
+
+            const normalizedTarget = normalizeLanguageCode(targetLang) || 'nor';
+
+            if (normalizedTarget === sourceLang) {
+                return text; // Avoid unnecessary API call when languages already match
+            }
+            try {
+                const response = await fetch(TARTUNLP_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        src: sourceLang,
+                        tgt: normalizedTarget,
+                        domain: 'general'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Translation API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.result || '[Oversettelse mislyktes]';
+            } catch (error) {
+                console.error('Translation error:', error);
+                return '[Feil under oversettelse]';
+            }
+        }
+
+        function sendConfig(key, value) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const configMessage = { type: 'config', key, value };
+                socket.send(JSON.stringify(configMessage));
+            }
+        }
+
+        maxSecondsSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            maxSecondsValue.textContent = `${value} s`;
+            sendConfig('MAX_BUFFER_SECONDS', value);
+        });
+        silenceDurationSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            silenceDurationValue.textContent = `${value.toFixed(1)} s`;
+            sendConfig('SILENCE_DURATION_S', value);
+        });
+        vadThresholdSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            vadThresholdValue.textContent = value.toFixed(2);
+            sendConfig('VAD_THRESHOLD', value);
+        });
+
+        function updateActiveButton(activeBtn) {
+            [showNorwegianBtn, showTranslationBtn, showBothBtn].forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'dark:bg-blue-500', 'text-white');
+                btn.classList.add('bg-white', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white');
+            });
+            activeBtn.classList.add('bg-blue-600', 'dark:bg-blue-500', 'text-white', 'hover:text-gray-900'); // Added to public server: , 'hover:text-gray-900'
+            activeBtn.classList.remove('bg-white', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white');
+        }
+
+        /* disabled for public server
+        modelRadios.forEach((radio) => {
+            if (radio.checked) {
+                selectedModel = radio.value;
+            }
+            radio.addEventListener('change', (event) => {
+                if (!event.target.checked) return;
+                selectedModel = event.target.value;
+                applyModelUI(selectedModel);
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    sendConfig('MODEL_NAME', selectedModel);
+                } else {
+                    preloadModel(selectedModel);
+                }
+            });
+        });
+        */
+
+        showNorwegianBtn.addEventListener('click', () => {
+            outputContainer.classList.remove('md:grid-cols-2'); outputContainer.classList.add('md:grid-cols-1');
+            norwegianContainerDiv.classList.remove('hidden'); translationContainerDiv.classList.add('hidden');
+            languageSelectorContainer.classList.add('hidden');
+            updateActiveButton(showNorwegianBtn);
+        });
+        showTranslationBtn.addEventListener('click', () => {
+            outputContainer.classList.remove('md:grid-cols-2'); outputContainer.classList.add('md:grid-cols-1');
+            norwegianContainerDiv.classList.add('hidden'); translationContainerDiv.classList.remove('hidden');
+            languageSelectorContainer.classList.remove('hidden');
+            updateActiveButton(showTranslationBtn);
+        });
+        showBothBtn.addEventListener('click', () => {
+            outputContainer.classList.remove('md:grid-cols-1'); outputContainer.classList.add('md:grid-cols-2');
+            norwegianContainerDiv.classList.remove('hidden'); translationContainerDiv.classList.remove('hidden');
+            languageSelectorContainer.classList.remove('hidden');
+            updateActiveButton(showBothBtn);
+        });
+
+        async function startRecording() {
+            if (isRecording) return;
+            let stream;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            try {
+                setStatusMessage('Venter på mikrofontilgang...');
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (err) {
+                console.error('Feil ved mikrofon-tilgang:', err);
+                setStatusMessage('Feil: Fikk ikke tilgang til mikrofon.');
+                return;
+            }
+
+            socket = new WebSocket(`${protocol}//${window.location.host}/stream`);
+
+            const cleanupIdleStream = () => {
+                if (!isRecording && stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+            };
+
+            socket.onopen = async () => {
+                setStatusMessage('Tilkoblet. Starter mikrofon...');
+                try {
+
+                    /* Disabled for public server:
+                    sendConfig('MODEL_NAME', selectedModel);
+                    */
+                    sendConfig('MAX_BUFFER_SECONDS', parseFloat(maxSecondsSlider.value));
+                    sendConfig('SILENCE_DURATION_S', parseFloat(silenceDurationSlider.value));
+                    sendConfig('VAD_THRESHOLD', parseFloat(vadThresholdSlider.value));
+                    isRecording = true; updateButtonUI(true); setStatusMessage('Strømmer lyd...');
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(event.data);
+                    };
+                    mediaRecorder.start(CHUNK_TIMESLICE_MS);
+                } catch (err) {
+                    console.error('Feil ved oppstart av opptak:', err);
+                    setStatusMessage('Feil: Klarte ikke å starte opptak.');
+                    cleanupIdleStream();
+                    socket.close();
+                }
+            };
+
+            socket.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+
+                /* Disabled for public server:
+                if (data.type === 'model_status') {
+                    handleModelStatusMessage(data);
+                    return;
+                }
+                */
+ 
+                if (data.type === 'transcription') {
+
+                    /* Disabled for public server:
+                    // Add Norwegian transcription
+                    const norwegianP = document.createElement('p');
+                    norwegianP.textContent = data.text;
+                    norwegianP.classList.add('mb-2');
+                    transcriptionContainer.appendChild(norwegianP);
+                    transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
+                    */
+                    // Replacement:
+                    // Add transcription (Nordsamisk)
+                    const transcriptionP = document.createElement('p');
+                    transcriptionP.textContent = data.text;
+                    transcriptionP.classList.add('mb-2');
+                    transcriptionContainer.appendChild(transcriptionP);
+                    transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
+
+                    // Public server only translates if translation UI is visible
+                    if (!translationContainerDiv.classList.contains('hidden')) {
+                    // Replacement ends.
+
+                    // Create translation placeholder
+                    const translationP = document.createElement('p');
+                    translationP.classList.add('text-gray-400', 'placeholder-dots', 'mb-2');
+                    translationP.textContent = 'Oversetter';
+                    translationOutput.appendChild(translationP);
+                    translationOutput.scrollTop = translationOutput.scrollHeight;
+
+                    // Translate using TartuNLP API
+                    const targetLang = targetLanguageSelect.value;
+
+                    /* Disabled for public server:
+                    const translation = await translateText(data.text, targetLang, data.modelName);
+                    */
+                    // Replacement:
+                    const translation = await translateText(data.text, targetLang);
+                    // Replacement ends
+ 
+                    // Update translation
+                    translationP.textContent = translation;
+                    translationP.classList.remove('text-gray-400', 'placeholder-dots');
+                    translationOutput.scrollTop = translationOutput.scrollHeight;
+                    }
+
+                } else if (data.error) {
+                    console.error("Feil fra tjener:", data.error);
+                    setStatusMessage(`Feil: ${data.error}`);
+                }
+            };
+
+            socket.onclose = () => {
+                if (isRecording) {
+                    stopRecording(false);
+                } else {
+                    cleanupIdleStream();
+                }
+                setStatusMessage('Frakoblet. Klar til å starte.');
+            };
+            socket.onerror = (error) => {
+                console.error("WebSocket feil:", error);
+                cleanupIdleStream();
+                setStatusMessage('Tilkoblingsfeil.');
+            };
+        }
+
+        function stopRecording(closeSocket = true) {
+            isRecording = false;
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                mediaRecorder.stop();
+            }
+            if (socket && closeSocket && socket.readyState === WebSocket.OPEN) socket.close();
+            updateButtonUI(false);
+            setStatusMessage('Opptaket er stoppet.');
+        }
+ 
+        function updateButtonUI(recording) {
+            if (recording) {
+                recordButton.textContent = 'Stopp opptak';
+                recordButton.classList.add('bg-red-600', 'hover:bg-red-700', 'pulse');
+                recordButton.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                recordButton.textContent = 'Start opptak';
+                recordButton.classList.remove('bg-red-600', 'hover:bg-red-700', 'pulse');
+                recordButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
+        }
+
+        recordButton.addEventListener('click', () => { if (!isRecording) startRecording(); else stopRecording(); });
+        updateActiveButton(showNorwegianBtn);
+        showNorwegianBtn.click();
+
+        /* Disabled for public server:
+        async function preloadModel(modelName) {
+            try {
+                setModelLoadingState(true, modelName);
+                const response = await fetch('/preload-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ modelName })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Klarte ikke å laste modell.');
+                }
+                setModelLoadingState(false, modelName);
+            } catch (error) {
+                console.error('Preload error:', error);
+                setStatusMessage(error.message || 'Klarte ikke å laste modell.');
+                setModelLoadingState(false, modelName);
+            }
+        }
+        */
+
+        // Load supported languages on page load
+        loadSupportedLanguages();
+
+        /* Disabled for public server:
+        applyModelUI(selectedModel);
+        */
+
+        // Lock UI labels for public wav2vec2 version
+        transcriptionHeader.textContent = 'Nordsamisk';
+
+    </script>
+</body>
+</html>
