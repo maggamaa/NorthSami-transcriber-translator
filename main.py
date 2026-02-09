@@ -97,7 +97,7 @@ class ModelManager:
 
 
 # --- Flask application setup ---
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static") # Added for logo: , static_folder="static"
 CORS(app)
 sock = Sock(app)
 whisper_executor = ThreadPoolExecutor(max_workers=2)
