@@ -5,6 +5,10 @@ name: Bygg og publiser Docker-image til GHCR
 on:
   push:
     branches: [ "main" ]
+    
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build-and-push:
