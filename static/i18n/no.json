@@ -1,0 +1,57 @@
+{
+  "title": "Samisk transkripsjon & oversettelse",
+  "appTitle": "Transkripsjon & oversettelse",
+
+  "startRecording": "Start opptak",
+  "stopRecording": "Stopp opptak",
+
+  "transcription": "Transkripsjon",
+  "translation": "Oversettelse",
+  "both": "Begge",
+
+  "transcriptionLanguage": "Nordsamisk",
+  "targetLanguage": "Målspråk:",
+  "languages": {
+    "eng": "Engelsk",
+    "nor": "Norsk",
+    "fin": "Finsk",
+    "sme": "Nordsamisk",
+    "sma": "Sørsamisk",
+    "smj": "Lulesamisk",
+    "smn": "Enaresamisk",
+    "sms": "Skoltesamisk",
+    "sjd": "Kildinsamisk",
+    "sje": "Pitesamisk",
+    "sju": "Umesamisk"
+  },
+
+  "settings": "Innstillinger",
+  "maxClip": "Maks klipplengde",
+  "silenceBeforeSend": "Stilletid før sending",
+  "speechThreshold": "Taleterskel (høyere = mindre følsom)",
+
+  "contact": "Kontakt",
+  "about": "Om tjenesten",
+  "aboutP1": "Ta gjerne kontakt dersom du ønsker å bidra, samarbeide, eller planlegger å bruke tjenesten i et prosjekt.",
+  "aboutP2": "Tjenesten driftes etter beste evne og kapasitet. Nedetid eller variasjon i ytelse kan forekomme.",
+  "credits": "Teknologi og ressurser",
+
+  "translationFailed": "Oversettelse mislyktes",
+  "translationError": "Feil under oversettelse",
+
+  "ready": "Klar til å starte",
+  "waitingMic": "Venter på mikrofontilgang...",
+  "micError": "Feil ved mikrofontilgang",
+  "micFail": "Feil: Fikk ikke tilgang til mikrofon.",
+  "startingMic": "Tilkoblet. Starter mikrofon...",
+  "streaming": "Strømmer lyd...",
+  "startError": "Feil ved oppstart av opptak",
+  "startFail": "Feil: Klarte ikke å starte opptak.",
+  "translating": "Oversetter",
+  "serverError": "Feil fra tjener",
+  "serverFail": "Feil: ",
+  "disconnected": "Frakoblet. Klar til å starte.",
+  "websocketError": "WebSocket-feil",
+  "connectionFail": "Tilkoblingsfeil.",
+  "stopped": "Opptaket er stoppet."
+}

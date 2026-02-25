@@ -97,16 +97,42 @@ class ModelManager:
 
 
 # --- Flask application setup ---
-app = Flask(__name__, static_folder="static") # Added for logo: , static_folder="static"
+app = Flask(__name__, static_folder="static") # Added for public server: , static_folder="static"
 CORS(app)
 sock = Sock(app)
+#//RECOMMENDED FIX: misleading executor name to 'asr_executor':
 whisper_executor = ThreadPoolExecutor(max_workers=2)
 
-@app.route('/')
-def index():
-   return send_from_directory('.', 'index.html')
+# Disabled for public server
+#@app.route('/')
+#def index():
+   #return send_from_directory('.', 'index.html')
 
-# Model preloading via HTTP is disabled in the public server version
+#------------------------------------------------------------------
+# Replacement: Added multilanguage support for public server
+SUPPORTED_UI_LANGS = {"sme", "no", "fi", "en"}
+
+@app.route('/')
+def index_default():
+    return send_from_directory('.', 'index.html', cache_timeout=3600)
+    # Cache HTML file in browser for 1 h
+
+@app.route('/<lang>')
+def index_with_lang(lang):
+    if lang not in SUPPORTED_UI_LANGS:
+        return "Language not supported", 404
+    return send_from_directory('.', 'index.html', cache_timeout=3600)
+    # Cache HTML file in browser for 1 h
+
+# Cache translation JSON files in browser for 24 h
+@app.after_request
+def add_cache_headers(response):
+    if request.path.startswith("/static/i18n/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+    #------------------------------------------------------------------
+
+# Model preloading via HTTP disabled for the public server version
 # @app.route('/preload-model', methods=['POST'])
 # def preload_model_http():
 #     payload = request.get_json(silent=True) or {}
@@ -152,17 +178,26 @@ except Exception as e:
 # --- Helper functions ---
 def process_audio_task(audio_input, config, send_fn):
    """Transkriberer lydklipp med valgt modell og sender tekst."""
+
+   # Added empty-audio guard for public server-------
+   if len(audio_input) == 0:
+       return
+       #----------------------------------------------
+   
    model_name = config.get('MODEL_NAME', DEFAULT_CONFIG['MODEL_NAME'])
+
    try:
        processor, active_model, spec = model_manager.get(model_name)
+       active_model.eval()  # disable dropout/batchnorm randomness for public server
    except ValueError as exc:
        send_fn({"error": str(exc)})
        return
+   
    try:
-       with torch.no_grad():
+       with torch.inference_mode(): # switched from no_grad(): to inference_mode(): for public server (performance and memory optimization)
            print(f"Prosesserer {len(audio_input) / config['TARGET_SAMPLERATE']:.2f} sekunder med lyd...")
 
-           # Removed Whisper execution paths from public server
+           # Disabled Whisper execution paths for public server
            # if spec['type'] == 'whisper':
            #     processed_input = processor(audio_input, sampling_rate=config['TARGET_SAMPLERATE'], return_tensors="pt")
            #     input_features = processed_input.input_features.to(device, dtype=torch_dtype)
@@ -186,7 +221,7 @@ def process_audio_task(audio_input, config, send_fn):
            #     predicted_ids = torch.argmax(logits, dim=-1)
            #     transcription = processor.batch_decode(predicted_ids)[0].strip()
 
-           # Replacement: wav2vec2 CTC model only
+           # Replacement: wav2vec2 CTC model only ------------------------------
            processed_input = processor(
                audio_input,
                sampling_rate=config['TARGET_SAMPLERATE'],
@@ -194,16 +229,16 @@ def process_audio_task(audio_input, config, send_fn):
                padding="longest"
            )
 
-           input_values = processed_input.input_values.to(device)
+           input_values = processed_input.input_values.to(device, non_blocking=True)
            attention_mask = (
-               processed_input.attention_mask.to(device)
+               processed_input.attention_mask.to(device, non_blocking=True)
                if "attention_mask" in processed_input else None
            )
 
            logits = active_model(input_values, attention_mask=attention_mask).logits
            predicted_ids = torch.argmax(logits, dim=-1)
            transcription = processor.batch_decode(predicted_ids)[0].strip()
-           # Replacement ends
+           #--------------------------------------------------------------------
 
            if transcription:
                print(f"Transkribert: {transcription}")
@@ -257,7 +292,7 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
             audio_chunk_torch = torch.from_numpy(audio_chunk_np)
             # Disabled for public server:
             # speech_prob = vad_model(audio_chunk_torch, current_config['TARGET_SAMPLERATE']).item()
-            # Replacement: Added VAD SAFETY GUARD for public server
+            # Replacement: Added VAD SAFETY GUARD for public server------------
             if vad_model is None:
                print("VAD-modell mangler")
                continue
@@ -270,7 +305,7 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
        except Exception as e:
             print(f"Lyd/VAD-feil: {e}")
             continue
-            # Replacement ends
+            #-----------------------------------------------------------------
 
        if speech_prob > current_config['VAD_THRESHOLD']:
            if not triggered:
@@ -372,7 +407,12 @@ def stream(ws):
        '-ar', str(session_config['TARGET_SAMPLERATE']),
        'pipe:1'
    ]
-   ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+   ffmpeg_process = subprocess.Popen(
+       command, 
+       stdin=subprocess.PIPE, 
+       stdout=subprocess.PIPE,
+       bufsize=0  # Added for public server: Ensure real-time audio streaming without OS buffering
+   )
    pcm_queue = queue.Queue()
    reader = threading.Thread(target=ffmpeg_reader_thread, args=(ffmpeg_process, pcm_queue))
    processor_thread = threading.Thread(target=pcm_processor_worker, args=(pcm_queue, safe_ws_send, session_config, config_lock))
@@ -387,7 +427,7 @@ def stream(ws):
                    data = json.loads(message)
                    if data.get('type') == 'config':
                        key, value = data.get('key'), data.get('value')
-                       # Model switching is disabled in the public server version; loader logic retained for future internal use
+                       # Model switching disabled for public server version
                        # if key == 'MODEL_NAME':
                        #     if value in SUPPORTED_MODELS:
                        #         with config_lock:
@@ -407,13 +447,13 @@ def stream(ws):
                        #         start_model_load(value)
                        # else:
                        #     print(f"Ignorerer ukjent modellvalg: {value}")
-                       # Replacement:
+                       # Replacement-----------------------------------------:
                        if key == 'MODEL_NAME':
                            print("Ignorerer forespørsel om endring av MODEL_NAME (fast modell på offentlig server).")
                            continue
-                           # Replacement ends
+                           #-------------------------------------------------
 
-                       if key in session_config:
+                       if key in session_config: # Replaced elif with if for public server
                            try:
                                numeric_value = float(value)
                            except (TypeError, ValueError):

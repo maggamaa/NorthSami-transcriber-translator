@@ -1,0 +1,57 @@
+{
+  "title": "Saamenkielinen transkriptio & käännös",
+  "appTitle": "Transkriptio & käännös",
+
+  "startRecording": "Aloita tallennus",
+  "stopRecording": "Lopeta tallennus",
+
+  "transcription": "Transkriptio",
+  "translation": "Käännös",
+  "both": "Molemmat",
+
+  "transcriptionLanguage": "Pohjoissaame",
+  "targetLanguage": "Kohdekieli:",
+  "languages": {
+    "eng": "Englanti",
+    "nor": "Norja",
+    "fin": "Suomi",
+    "sme": "Pohjoissaame",
+    "sma": "Eteläsaame",
+    "smj": "Luulajansaame",
+    "smn": "Inarinsaame",
+    "sms": "Koltansaame",
+    "sjd": "Kildininsaame",
+    "sje": "Piitimensaame",
+    "sju": "Uumajansaame"
+  },
+
+  "settings": "Asetukset",
+  "maxClip": "Äänileikkeen enimmäispituus",
+  "silenceBeforeSend": "Hiljaisuus ennen lähettämistä",
+  "speechThreshold": "Puhekynnys (korkeampi = vähemmän herkkä)",
+
+  "contact": "Yhteystiedot",
+  "about": "Tietoa palvelusta",
+  "aboutP1": "Ota meihin yhteyttä, jos haluat osallistua kehitykseen, tehdä yhteistyötä tai suunnitella palvelun käyttöä projektissa.",
+  "aboutP2": "Palvelua ylläpidetään parhaamme mukaan. Käyttökatkoja tai suorituskyvyn vaihtelua voi esiintyä.",
+  "credits": "Teknologia ja resurssit",
+
+  "translationFailed": "Käännös epäonnistui",
+  "translationError": "Virhe käännöksen aikana",
+
+  "ready": "Valmis aloittamaan",
+  "waitingMic": "Odotetaan mikrofonin käyttöoikeutta...",
+  "micError": "Mikrofonin käyttöoikeuden virhe",
+  "micFail": "Virhe: Mikrofoniin ei saatu käyttöoikeutta.",
+  "startingMic": "Yhdistetty. Käynnistetään mikrofoni...",
+  "streaming": "Äänen suoratoisto...",
+  "startError": "Virhe tallennuksen käynnistämisessä",
+  "startFail": "Virhe: Tallennuksen aloittaminen epäonnistui.",
+  "translating": "Käännetään",
+  "serverError": "Palvelinvirhe",
+  "serverFail": "Virhe: ",
+  "disconnected": "Yhteys katkaistu. Valmis aloittamaan.",
+  "websocketError": "WebSocket-virhe",
+  "connectionFail": "Yhteyden muodostaminen epäonnistui.",
+  "stopped": "Tallennus pysäytetty."
+}

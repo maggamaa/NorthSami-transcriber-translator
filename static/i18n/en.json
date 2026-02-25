@@ -1,0 +1,57 @@
+{
+  "title": "Sámi transcription & translation",
+  "appTitle": "Transcription & translation",
+
+  "startRecording": "Start recording",
+  "stopRecording": "Stop recording",
+
+  "transcription": "Transcription",
+  "translation": "Translation",
+  "both": "Both",
+
+  "transcriptionLanguage": "Northern Sámi",
+  "targetLanguage": "Target language:",
+  "languages": {
+    "eng": "English",
+    "nor": "Norwegian",
+    "fin": "Finnish",
+    "sme": "Northern Sámi",
+    "sma": "Southern Sámi",
+    "smj": "Lule Sámi",
+    "smn": "Inari Sámi",
+    "sms": "Skolt Sámi",
+    "sjd": "Kildin Sámi",
+    "sje": "Pite Sámi",
+    "sju": "Ume Sámi"
+  },
+
+  "settings": "Settings",
+  "maxClip": "Max clip length",
+  "silenceBeforeSend": "Silence before sending",
+  "speechThreshold": "Speech threshold (higher = less sensitive)",
+
+  "contact": "Contact",
+  "about": "About the service",
+  "aboutP1": "Feel free to contact us if you want to contribute, collaborate, or plan to use the service in a project.",
+  "aboutP2": "The service is operated to the best of our ability and capacity. Downtime or variations in performance may occur.",
+  "credits": "Technology and resources",
+
+  "translationFailed": "Translation failed",
+  "translationError": "Error during translation",
+
+  "ready": "Ready to start",
+  "waitingMic": "Waiting for microphone access...",
+  "micError": "Microphone access error",
+  "micFail": "Error: could not access the microphone.",
+  "startingMic": "Connected. Starting microphone...",
+  "streaming": "Streaming audio...",
+  "startError": "Error starting recording",
+  "startFail": "Error: failed to start recording.",
+  "translating": "Translating",
+  "serverError": "Server error",
+  "serverFail": "Error: ",
+  "disconnected": "Disconnected. Ready to start.",
+  "websocketError": "WebSocket error",
+  "connectionFail": "Connection failed.",
+  "stopped": "Recording stopped."
+}
