@@ -114,14 +114,14 @@ SUPPORTED_UI_LANGS = {"sme", "no", "fi", "en"}
 
 @app.route('/')
 def index_default():
-    return send_from_directory('.', 'index.html', cache_timeout=3600)
+    return send_from_directory('.', 'index.html', max_age=3600)
     # Cache HTML file in browser for 1 h
 
 @app.route('/<lang>')
 def index_with_lang(lang):
     if lang not in SUPPORTED_UI_LANGS:
         return "Language not supported", 404
-    return send_from_directory('.', 'index.html', cache_timeout=3600)
+    return send_from_directory('.', 'index.html', max_age=3600)
     # Cache HTML file in browser for 1 h
 
 # Cache translation JSON files in browser for 24 h
