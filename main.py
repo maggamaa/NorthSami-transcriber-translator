@@ -131,7 +131,7 @@ def index_with_lang(lang):
 # Cache translation JSON files in browser for 24 h
 @app.after_request
 def add_cache_headers(response):
-    if request.path.startswith("/static/i18n/"):
+    if request.path.startswith("./static/i18n/"):
         response.headers["Cache-Control"] = "public, max-age=86400"
     return response
     #------------------------------------------------------------------
