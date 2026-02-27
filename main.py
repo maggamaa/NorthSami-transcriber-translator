@@ -255,10 +255,10 @@ def process_audio_task(audio_input, config, send_fn):
 
 
 # --- Worker threads (unchanged) ---
-PRE_TRIGGER_CHUNKS = 10 # Replaced for public server: 6  # keep ~200ms of audio before the trigger fires
+PRE_TRIGGER_CHUNKS = 6  # keep ~200ms of audio before the trigger fires
 def ffmpeg_reader_thread(ffmpeg_proc, pcm_queue):
    while True:
-       chunk = ffmpeg_proc.stdout.read(4096 * 2) # Replaced for public server: (512 * 2)
+       chunk = ffmpeg_proc.stdout.read(512 * 2)
        if not chunk: break
        pcm_queue.put(chunk)
    pcm_queue.put(None)
@@ -269,11 +269,6 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
    triggered = False
    last_speech_time = 0
    pre_trigger_queue = deque(maxlen=PRE_TRIGGER_CHUNKS)
-
-   # Added for public server: VAD buffering (critical for stability) ---
-   vad_buffer = np.array([], dtype=np.float32)
-   VAD_MIN_SAMPLES = 2048  # ~128 ms at 16 kHz
-   #--------------------------------------------------------------------
 
    print("VAD-prosessor startet.")
    while True:
@@ -286,40 +281,10 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
            break
 
        with config_lock: current_config = config.copy()
-       try: # Added for public server
-            audio_chunk_np = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
-            # Disabled for public server:
-            # audio_chunk_torch = torch.from_numpy(audio_chunk_np)
-            # speech_prob = vad_model(audio_chunk_torch, current_config['TARGET_SAMPLERATE']).item()
-            # Replacement: ---------------------------------------------------------
-            # Added VAD SAFETY GUARD for public server
-            if vad_model is None:
-               print("VAD-modell mangler")
-               continue
-
-            # accumulate audio
-            vad_buffer = np.concatenate([vad_buffer, audio_chunk_np])
-
-            # wait until enough audio
-            if len(vad_buffer) < VAD_MIN_SAMPLES:
-                continue
-
-            # take a window for VAD
-            vad_window = vad_buffer[:VAD_MIN_SAMPLES]
-            vad_buffer = vad_buffer[VAD_MIN_SAMPLES:]
-
-            audio_chunk_torch = torch.from_numpy(vad_window).unsqueeze(0)
-
-            speech_prob = vad_model(
-               audio_chunk_torch,
-               current_config['TARGET_SAMPLERATE']
-            ).item()
-
-       except Exception as e:
-            print(f"Lyd/VAD-feil: {e}")
-            continue
-            #-----------------------------------------------------------------
-
+       audio_chunk_np = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
+       audio_chunk_torch = torch.from_numpy(audio_chunk_np)
+       speech_prob = vad_model(audio_chunk_torch, current_config['TARGET_SAMPLERATE']).item()
+        
        if speech_prob > current_config['VAD_THRESHOLD']:
            if not triggered:
                print("Stemme oppdaget, starter opptak av segment...")
