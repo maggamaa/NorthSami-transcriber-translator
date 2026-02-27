@@ -154,15 +154,10 @@ model_manager = ModelManager(SUPPORTED_MODELS, device, torch_dtype)
 vad_model = None
 
 try:
-   model_manager.preload(DEFAULT_CONFIG['MODEL_NAME'])
-   print("Laster inn VAD-modell...")
-   vad_model, _ = torch.hub.load(
-       repo_or_dir='snakers4/silero-vad',
-       model='silero_vad',
-       force_reload=False,
-       onnx=False
-   )
-   print("VAD-modell lastet inn vellykket!")
+    model_manager.preload(DEFAULT_CONFIG['MODEL_NAME'])
+    print("Laster inn VAD-modell...")
+    vad_model, _ = torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad', force_reload=False, onnx=False)
+    print("VAD-modell lastet inn vellykket!")
 
 except Exception as e:
    print(f"ADVARSEL: Kunne ikke laste modeller: {e}")
@@ -171,24 +166,17 @@ except Exception as e:
 
 # --- Helper functions ---
 def process_audio_task(audio_input, config, send_fn):
-   """Transkriberer lydklipp med valgt modell og sender tekst."""
-
-   # Added empty-audio guard for public server-------
-   if len(audio_input) == 0:
-       return
-       #----------------------------------------------
-   
+   """Transkriberer lydklipp med valgt modell og sender tekst."""  
    model_name = config.get('MODEL_NAME', DEFAULT_CONFIG['MODEL_NAME'])
 
    try:
        processor, active_model, spec = model_manager.get(model_name)
-       active_model.eval()  # disable dropout/batchnorm randomness for public server
    except ValueError as exc:
        send_fn({"error": str(exc)})
        return
    
    try:
-       with torch.inference_mode(): # switched from no_grad(): to inference_mode(): for public server (performance and memory optimization)
+       with torch.no_grad():
            print(f"Prosesserer {len(audio_input) / config['TARGET_SAMPLERATE']:.2f} sekunder med lyd...")
 
            # Disabled Whisper execution paths for public server
@@ -262,7 +250,6 @@ def ffmpeg_reader_thread(ffmpeg_proc, pcm_queue):
        if not chunk: break
        pcm_queue.put(chunk)
    pcm_queue.put(None)
-
 
 def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
    speech_buffer = bytearray()
@@ -379,18 +366,8 @@ def stream(ws):
            model_loader_state["thread"] = thread
            thread.start()
 
-   command = [
-       'ffmpeg', '-loglevel', 'error', '-i', 'pipe:0',
-       '-f', 's16le', '-ac', '1',
-       '-ar', str(session_config['TARGET_SAMPLERATE']),
-       'pipe:1'
-   ]
-   ffmpeg_process = subprocess.Popen(
-       command, 
-       stdin=subprocess.PIPE, 
-       stdout=subprocess.PIPE,
-       bufsize=0  # Added for public server: Ensure real-time audio streaming without OS buffering
-   )
+   command = ['ffmpeg', '-loglevel', 'error', '-i', 'pipe:0', '-f', 's16le', '-ac', '1', '-ar', str(session_config['TARGET_SAMPLERATE']), 'pipe:1']
+   ffmpeg_process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
    pcm_queue = queue.Queue()
    reader = threading.Thread(target=ffmpeg_reader_thread, args=(ffmpeg_process, pcm_queue))
    processor_thread = threading.Thread(target=pcm_processor_worker, args=(pcm_queue, safe_ws_send, session_config, config_lock))
