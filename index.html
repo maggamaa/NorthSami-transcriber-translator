@@ -196,7 +196,7 @@
         let isRecording = false;
         let mediaRecorder;
         let socket;
-        const CHUNK_TIMESLICE_MS = 200; //Reduced browser chunk size from 500 to 200 for public server (delay fix)
+        const CHUNK_TIMESLICE_MS = 300; //Reduced browser chunk size from 500 to 300 for public server (delay fix)
         const TARTUNLP_API_URL = 'https://samiailab.samas.no/api/translation' // Replaced:'https://api.tartunlp.ai/translation/v2';
 
         // Fixed model for public server (wav2vec2) outputs Northern Sámi
@@ -877,7 +877,7 @@
                 <div class="flex items-start gap-3">
                     <img src="./static/icons/icon-email.svg" class="w-5 h-5 mt-0.5" alt="">
                     <a href="mailto:kajsam@samas.no" class="hover:underline">
-                        kajsam@samas.no
+                        Kajsa Møllersen: kajsam@samas.no 
                     </a>
                 </div>
 
