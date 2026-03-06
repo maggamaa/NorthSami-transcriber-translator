@@ -104,8 +104,17 @@ class ModelManager:
 app = Flask(__name__, static_folder="static") # Added for public server: , static_folder="static"
 CORS(app)
 sock = Sock(app)
-#//RECOMMENDED FIX: misleading executor name to 'asr_executor':
-whisper_executor = ThreadPoolExecutor(max_workers=2)
+# Disabled for public server
+# whisper_executor = ThreadPoolExecutor(max_workers=2)
+
+#------------------------------------------------------------------
+# Replacement:
+# Shared model objects are global; serialize access to avoid multi-client contention.
+ASR_MAX_WORKERS = max(1, int(os.getenv("ASR_MAX_WORKERS", "1")))
+asr_executor = ThreadPoolExecutor(max_workers=ASR_MAX_WORKERS)
+asr_model_lock = threading.Lock()
+vad_lock = threading.Lock()
+#------------------------------------------------------------------
 
 # Disabled for public server
 #@app.route('/')
@@ -176,8 +185,9 @@ def process_audio_task(audio_input, config, send_fn):
        return
    
    try:
-       with torch.no_grad():
-           print(f"Prosesserer {len(audio_input) / config['TARGET_SAMPLERATE']:.2f} sekunder med lyd...")
+       # Disabled for public server:
+       #with torch.no_grad():
+           #print(f"Prosesserer {len(audio_input) / config['TARGET_SAMPLERATE']:.2f} sekunder med lyd...")
 
            # Disabled Whisper execution paths for public server
            # if spec['type'] == 'whisper':
@@ -204,42 +214,68 @@ def process_audio_task(audio_input, config, send_fn):
            #     transcription = processor.batch_decode(predicted_ids)[0].strip()
 
            # Replacement: wav2vec2 CTC model only ------------------------------
-           processed_input = processor(
-               audio_input,
-               sampling_rate=config['TARGET_SAMPLERATE'],
-               return_tensors="pt",
-               padding="longest"
-           )
+           #processed_input = processor(
+               #audio_input,
+               #sampling_rate=config['TARGET_SAMPLERATE'],
+               #return_tensors="pt",
+               #padding="longest"
+           #)
 
-           input_values = processed_input.input_values.to(device, non_blocking=True)
-           attention_mask = (
-               processed_input.attention_mask.to(device, non_blocking=True)
-               if "attention_mask" in processed_input else None
-           )
+           #input_values = processed_input.input_values.to(device, non_blocking=True)
+           #attention_mask = (
+               #processed_input.attention_mask.to(device, non_blocking=True)
+               #if "attention_mask" in processed_input else None
+           #)
 
-           logits = active_model(input_values, attention_mask=attention_mask).logits
-           predicted_ids = torch.argmax(logits, dim=-1)
-           transcription = processor.batch_decode(predicted_ids)[0].strip()
+           #logits = active_model(input_values, attention_mask=attention_mask).logits
+           #predicted_ids = torch.argmax(logits, dim=-1)
+           #transcription = processor.batch_decode(predicted_ids)[0].strip()
            #--------------------------------------------------------------------
 
-           if transcription:
-               print(f"Transkribert: {transcription}")
+           #if transcription:
+               #print(f"Transkribert: {transcription}")
                # Send norsk tekst
-               send_fn({
-                   "type": "transcription",
-                   "text": transcription,
-                   "modelName": model_name
-               })
-           else:
-               print("Ingen tekst gjenkjent.")
+               #send_fn({
+                   #"type": "transcription",
+                   #"text": transcription,
+                   #"modelName": model_name
+               #})
+           #else:
+               #print("Ingen tekst gjenkjent.")
+
+               #--------------------------------------------------------------------
+               # Replacement:
+        with asr_model_lock:
+            with torch.no_grad():
+                print(f"Prosesserer {len(audio_input) / config['TARGET_SAMPLERATE']:.2f} sekunder med lyd...")
+                processed_input = processor(audio_input, sampling_rate=config['TARGET_SAMPLERATE'], return_tensors="pt", padding="longest")
+                input_values = processed_input.input_values.to(device)
+                attention_mask = processed_input.attention_mask.to(device) if "attention_mask" in processed_input else None
+                logits = active_model(input_values, attention_mask=attention_mask).logits
+                predicted_ids = torch.argmax(logits, dim=-1)
+                transcription = processor.batch_decode(predicted_ids)[0].strip()
+                if transcription:
+                    print(f"Transkribert: {transcription}")
+                    send_fn({
+                        "type": "transcription",
+                        "text": transcription,
+                    })
+                else:
+                    print("Ingen tekst gjenkjent.")
+                    #--------------------------------------------------------------------
+
+
    except Exception:
        print("En uventet feil oppstod under transkribering:")
        traceback.print_exc()
        send_fn({"error": "Internal server error during transcription."})
    finally:
+       # Avoid per-request empty_cache(), which can introduce long pauses under load.
        gc.collect()
-       if torch.cuda.is_available():
-           torch.cuda.empty_cache()
+
+       # Disabled for public server:
+       #if torch.cuda.is_available():
+           #torch.cuda.empty_cache()
 
 
 # --- Worker threads (unchanged) ---
@@ -264,14 +300,20 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
            if speech_buffer:
                with config_lock: current_config = config.copy()
                audio_input = np.frombuffer(speech_buffer, dtype=np.int16).astype(np.float32) / 32768.0
-               whisper_executor.submit(process_audio_task, audio_input, current_config, send_fn)
+               asr_executor.submit(process_audio_task, audio_input, current_config, send_fn)
            break
 
        with config_lock: current_config = config.copy()
        audio_chunk_np = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32768.0
        audio_chunk_torch = torch.from_numpy(audio_chunk_np)
-       speech_prob = vad_model(audio_chunk_torch, current_config['TARGET_SAMPLERATE']).item()
-        
+       # Disabled for public server:
+       # speech_prob = vad_model(audio_chunk_torch, current_config['TARGET_SAMPLERATE']).item()
+       #--------------------------------------------------------------------
+       # Replacement:
+       with vad_lock:
+            speech_prob = vad_model(audio_chunk_torch, current_config['TARGET_SAMPLERATE']).item()
+            #--------------------------------------------------------------------
+
        if speech_prob > current_config['VAD_THRESHOLD']:
            if not triggered:
                print("Stemme oppdaget, starter opptak av segment...")
@@ -287,7 +329,7 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
            if time.time() - last_speech_time > current_config['SILENCE_DURATION_S']:
                print(f"Trigger: Stillhet i {current_config['SILENCE_DURATION_S']}s etter tale.")
                audio_input = np.frombuffer(speech_buffer, dtype=np.int16).astype(np.float32) / 32768.0
-               whisper_executor.submit(process_audio_task, audio_input, current_config, send_fn)
+               asr_executor.submit(process_audio_task, audio_input, current_config, send_fn)
                speech_buffer.clear()
                triggered = False
                continue
@@ -298,7 +340,7 @@ def pcm_processor_worker(pcm_queue, send_fn, config, config_lock):
        if triggered and len(speech_buffer) / (current_config['TARGET_SAMPLERATE'] * 2) >= current_config['MAX_BUFFER_SECONDS']:
            print(f"Trigger: Maks varighet på {current_config['MAX_BUFFER_SECONDS']}s nådd.")
            audio_input = np.frombuffer(speech_buffer, dtype=np.int16).astype(np.float32) / 32768.0
-           whisper_executor.submit(process_audio_task, audio_input, current_config, send_fn)
+           asr_executor.submit(process_audio_task, audio_input, current_config, send_fn)
            speech_buffer.clear()
            triggered = False
 
