@@ -872,10 +872,13 @@
 
                 <!-- Email -->
                 <div class="flex items-start gap-3">
-                    <img src="./static/icons/icon-email.svg" class="w-5 h-5 mt-0.5" alt="">
-                    <a href="mailto:kajsam@samas.no" class="hover:underline">
-                        Kajsa Møllersen: kajsam@samas.no 
-                    </a>
+                    <img src="./static/icons/icon-email.svg" class="w-5 h-5 mt-0.5" alt="">                   
+                    <div class="flex flex-col">
+                        <span class="font-bold">Kajsa Møllersen</span>
+                        <a href="mailto:kajsam@samas.no" class="hover:underline">
+                            <span>kajsam@samas.no</span>
+                        </a>
+                    </div>                   
                 </div>
 
                 <!-- Address -->
@@ -901,13 +904,18 @@
             <div>
                 <h2 id="footerCredits" class="font-semibold text-2xl mb-4"></h2>
                 <ul class="space-y-1">
-                    <li>
-                        <a href="https://github.com/tbitu/transkripsjon-samisk-norsk"
-                           class="flex items-start gap-3 pl-3 hover:underline"
-                           target="_blank" rel="noopener">
+                    <li>               
+                        <div class="flex items-start gap-3 pl-3">
                             <img src="./static/icons/icon-arrow-right2.svg" class="w-4 h-4 mt-2" alt="">
-                            <span>Transkripsjon Samisk-Norsk</span>
-                        </a>
+                            <div class="flex flex-col">
+                                <span class="text-2xl font-bold">Tarjei Bitustøyl</span>
+                                <a href="https://github.com/tbitu/transkripsjon-samisk-norsk" 
+                                   class="hover:underline" 
+                                   target="_blank" rel="noopener">
+                                    <span>Transkripsjon Samisk-Norsk</span>
+                                </a>
+                            </div>
+                        </div>
                     </li>
                     <li>
                         <a href="https://huggingface.co/GetmanY1/wav2vec2-large-sami-cont-pt-22k-finetuned"
